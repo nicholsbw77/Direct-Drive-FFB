@@ -300,3 +300,214 @@ class SuspensionEffect(BaseEffect):
 
         # Lateral is primary, longitudinal adds weight to the feel
         return normalized * 0.8 + lon_normalized * 0.2
+
+
+# ---------------------------------------------------------------------------
+# Dirt-specific effects
+# ---------------------------------------------------------------------------
+
+
+class RearTractionLoss(BaseEffect):
+    """
+    Rear traction loss / oversteer feel for dirt cars.
+
+    This is THE primary effect for dirt sprint cars. On dirt, the front
+    tires are mostly along for the ride — the driver steers with the
+    throttle by controlling the rear slide angle. This effect translates
+    the rear slip into a steering force so the driver can feel:
+
+    1. When the rear breaks loose (onset of slide)
+    2. How far the rear is sliding (slide angle magnitude)
+    3. Which direction the rear is going (so you can counter-steer)
+    4. The transition from grip to full slide
+
+    The force pushes the wheel in the direction you need to counter-steer,
+    so it naturally guides the driver's hands.
+    """
+
+    name = "rear_traction_loss"
+
+    def __init__(self, config: EffectConfig | None = None,
+                 slip_onset: float = 0.08, full_slide: float = 0.5):
+        super().__init__(config or EffectConfig(gain=1.0))
+        self.slip_onset = slip_onset    # rear slip ratio where you start to feel it
+        self.full_slide = full_slide    # rear slip ratio considered "full slide"
+        self._prev_slip = 0.0
+        self._prev_yaw = 0.0
+
+    def compute(self, telemetry: TelemetryData) -> float:
+        # Average rear tire slip
+        rear_slip = (telemetry.lr_tire_slip + telemetry.rr_tire_slip) / 2.0
+
+        if rear_slip < self.slip_onset:
+            self._prev_slip = rear_slip
+            return 0.0
+
+        # Normalize slip into 0-1 range (onset to full slide)
+        slip_range = self.full_slide - self.slip_onset
+        slip_magnitude = min(1.0, (rear_slip - self.slip_onset) / slip_range)
+
+        # Direction: yaw rate tells us which way the rear is swinging
+        # Positive yaw = car rotating left = rear swinging right
+        # The force should push the wheel to counter-steer (same sign as yaw)
+        yaw = telemetry.yaw_rate
+
+        # Also use lateral velocity as a secondary direction indicator
+        # VelocityY > 0 means car sliding to the right
+        lat_vel = telemetry.velocity_y
+        lat_factor = max(-1.0, min(1.0, lat_vel / 5.0))  # normalize ~5 m/s
+
+        # Blend yaw and lateral velocity for direction
+        # Yaw is more immediate, lat_vel confirms the slide direction
+        yaw_normalized = max(-1.0, min(1.0, yaw / 1.5))  # ~1.5 rad/s = big yaw
+        direction = yaw_normalized * 0.6 + lat_factor * 0.4
+
+        # Rate of change of slip — sudden break-loose feels different than steady slide
+        slip_delta = rear_slip - self._prev_slip
+        self._prev_slip = rear_slip
+        onset_kick = min(1.0, max(0.0, slip_delta / 0.05)) * 0.3  # sharp kick on breakaway
+
+        # Combine: magnitude of slide * direction + onset kick
+        force = (slip_magnitude + onset_kick) * direction
+
+        return max(-1.0, min(1.0, force))
+
+
+class DirtYawFeedback(BaseEffect):
+    """
+    Yaw rate feedback for dirt driving.
+
+    Dirt cars are almost always rotating. This effect gives a constant
+    sense of how fast the car is yawing. Combined with RearTractionLoss,
+    it helps the driver modulate throttle to control the slide angle.
+
+    On pavement this would be distracting, but on dirt it's the primary
+    way you "feel" what the car is doing since the front tires aren't
+    providing much useful SAT.
+    """
+
+    name = "dirt_yaw_feedback"
+
+    def __init__(self, config: EffectConfig | None = None,
+                 max_yaw_rate: float = 2.0):
+        super().__init__(config or EffectConfig(gain=0.7))
+        self.max_yaw_rate = max_yaw_rate  # rad/s for normalization
+        self._yaw_history = deque(maxlen=8)
+
+    def compute(self, telemetry: TelemetryData) -> float:
+        yaw = telemetry.yaw_rate
+        self._yaw_history.append(yaw)
+
+        # Current yaw normalized
+        yaw_norm = max(-1.0, min(1.0, yaw / self.max_yaw_rate))
+
+        # Yaw acceleration (rate of change) — feels like the car snapping around
+        if len(self._yaw_history) >= 3:
+            recent = list(self._yaw_history)
+            yaw_accel = recent[-1] - recent[-3]  # delta over ~3 ticks
+            yaw_accel_norm = max(-0.5, min(0.5, yaw_accel / 0.5))
+        else:
+            yaw_accel_norm = 0.0
+
+        # Steady yaw is smooth force, yaw accel adds sharpness
+        return yaw_norm * 0.7 + yaw_accel_norm * 0.3
+
+
+class ThrottleSteer(BaseEffect):
+    """
+    Throttle-induced rear slide feedback.
+
+    On dirt sprint cars, getting on the throttle mid-corner kicks the
+    rear out. This effect ties throttle input to the FFB when the rear
+    is already loose, so you feel the connection between your right foot
+    and the steering wheel.
+
+    When throttle increases while rear tires are slipping, the wheel
+    pushes in the counter-steer direction proportionally.
+    """
+
+    name = "throttle_steer"
+
+    def __init__(self, config: EffectConfig | None = None):
+        super().__init__(config or EffectConfig(gain=0.5))
+        self._prev_throttle = 0.0
+
+    def compute(self, telemetry: TelemetryData) -> float:
+        rear_slip = (telemetry.lr_tire_slip + telemetry.rr_tire_slip) / 2.0
+        throttle = telemetry.throttle
+
+        # Only active when rear is sliding
+        if rear_slip < 0.05:
+            self._prev_throttle = throttle
+            return 0.0
+
+        # Throttle change — positive = getting on it, negative = lifting
+        throttle_delta = throttle - self._prev_throttle
+        self._prev_throttle = throttle
+
+        # Scale by how much the rear is already loose
+        slip_factor = min(1.0, rear_slip / 0.3)
+
+        # Throttle application while sliding pushes the force
+        # Direction comes from yaw (which way the car is rotating)
+        yaw_dir = 1.0 if telemetry.yaw_rate > 0 else -1.0
+
+        # Getting on throttle while sliding = more counter-steer force
+        # Lifting while sliding = less force (car straightening)
+        force = throttle_delta * slip_factor * yaw_dir * 3.0
+
+        # Also add steady-state component: holding throttle while sliding
+        steady = throttle * slip_factor * yaw_dir * 0.15
+
+        return max(-1.0, min(1.0, force + steady))
+
+
+class DirtSurfaceRumble(BaseEffect):
+    """
+    Dirt surface texture and loose surface rumble.
+
+    Dirt tracks have more surface variation than pavement. This uses
+    all four suspension channels to create a richer rumble that
+    conveys the loose, bumpy surface. Heavier than pavement rumble
+    since the surface is constantly moving under the tires.
+    """
+
+    name = "dirt_surface_rumble"
+
+    def __init__(self, config: EffectConfig | None = None):
+        super().__init__(config or EffectConfig(gain=0.4))
+        self._hist_lf = deque(maxlen=12)
+        self._hist_rf = deque(maxlen=12)
+        self._hist_lr = deque(maxlen=12)
+        self._hist_rr = deque(maxlen=12)
+
+    def compute(self, telemetry: TelemetryData) -> float:
+        self._hist_lf.append(telemetry.lf_shock_vel)
+        self._hist_rf.append(telemetry.rf_shock_vel)
+        self._hist_lr.append(telemetry.lr_shock_vel)
+        self._hist_rr.append(telemetry.rr_shock_vel)
+
+        if len(self._hist_lf) < 4:
+            return 0.0
+
+        # Variance across all four corners — dirt is rough everywhere
+        lf_var = float(np.var(list(self._hist_lf)))
+        rf_var = float(np.var(list(self._hist_rf)))
+        lr_var = float(np.var(list(self._hist_lr)))
+        rr_var = float(np.var(list(self._hist_rr)))
+
+        # Front corners weighted more for steering feel, but rears contribute
+        total_rumble = (lf_var + rf_var) * 0.35 + (lr_var + rr_var) * 0.15
+
+        # Normalize — dirt surfaces produce higher variance than pavement
+        magnitude = min(1.0, total_rumble / 0.08)
+
+        # Directional bias from front left/right difference
+        front_diff = lf_var - rf_var
+        direction = max(-1.0, min(1.0, front_diff / 0.03))
+
+        # If direction is very small, add some oscillation for texture feel
+        if abs(direction) < 0.2:
+            direction = 0.3 * math.sin(telemetry.session_time * 40.0)
+
+        return magnitude * direction

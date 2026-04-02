@@ -1,0 +1,97 @@
+{
+    "profile_name": "Dirt Sprint Car",
+    "description": "Tuned for dirt sprint cars where steering is done with throttle and rear tire slide. SAT is reduced since front tires aren't doing the work. Rear traction loss, yaw feedback, and throttle-steer are the primary effects.",
+    "engine": {
+        "master_gain": 1.0,
+        "max_torque_pct": 60.0,
+        "output_rate_hz": 360.0,
+        "slew_rate_limit": 0.6,
+        "deadzone": 0.008,
+        "center_spring_gain": 0.05,
+        "center_spring_damping": 0.02,
+        "invert_output": false
+    },
+    "hardware": {
+        "port": "COM3",
+        "baudrate": 38400,
+        "slave_address": 1,
+        "torque_limit_pct": 60.0,
+        "speed_limit_rpm": 200
+    },
+    "effects": {
+        "self_aligning_torque": {
+            "enabled": true,
+            "gain": 0.3,
+            "smoothing": 0.1,
+            "min_speed": 0.0,
+            "max_torque_nm": 12.0,
+            "_note": "Reduced heavily - front tires on dirt sprint cars provide minimal useful SAT"
+        },
+        "rear_traction_loss": {
+            "enabled": true,
+            "gain": 1.2,
+            "smoothing": 0.05,
+            "min_speed": 2.0,
+            "slip_onset": 0.08,
+            "full_slide": 0.5,
+            "_note": "PRIMARY EFFECT - this is how you feel the rear stepping out and how far it's sliding"
+        },
+        "dirt_yaw_feedback": {
+            "enabled": true,
+            "gain": 0.8,
+            "smoothing": 0.08,
+            "min_speed": 2.0,
+            "max_yaw_rate": 2.0,
+            "_note": "Constant sense of car rotation rate - essential for dirt since you're always sliding"
+        },
+        "throttle_steer": {
+            "enabled": true,
+            "gain": 0.6,
+            "smoothing": 0.0,
+            "min_speed": 3.0,
+            "_note": "Feel the connection between throttle and rear slide. Key for dirt sprint driving"
+        },
+        "dirt_surface_rumble": {
+            "enabled": true,
+            "gain": 0.45,
+            "smoothing": 0.0,
+            "min_speed": 1.0,
+            "_note": "Rougher and heavier than pavement rumble - all 4 corners contribute"
+        },
+        "engine_vibration": {
+            "enabled": true,
+            "gain": 0.2,
+            "smoothing": 0.0,
+            "min_speed": 0.0,
+            "_note": "Sprint car engines run high RPM, adds immersion"
+        },
+        "collision_impact": {
+            "enabled": true,
+            "gain": 0.7,
+            "smoothing": 0.0,
+            "min_speed": 0.0,
+            "_note": "Wall hits and car contact"
+        },
+        "suspension": {
+            "enabled": true,
+            "gain": 0.2,
+            "smoothing": 0.15,
+            "min_speed": 2.0,
+            "_note": "Reduced - less useful on dirt since weight transfer is constant in the slide"
+        },
+        "curb_rumble": {
+            "enabled": false,
+            "gain": 0.0,
+            "smoothing": 0.0,
+            "min_speed": 0.0,
+            "_note": "Disabled - no curbs on dirt tracks, dirt_surface_rumble replaces this"
+        },
+        "tire_slip": {
+            "enabled": false,
+            "gain": 0.0,
+            "smoothing": 0.0,
+            "min_speed": 0.0,
+            "_note": "Disabled - front tire slip effect replaced by rear_traction_loss for dirt"
+        }
+    }
+}

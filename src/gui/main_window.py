@@ -264,20 +264,56 @@ class MainWindow(QMainWindow):
         widget = QWidget()
         layout = QVBoxLayout(widget)
 
-        effect_names = {
+        # Pavement effects group
+        pavement_group = QGroupBox("Pavement Effects")
+        pavement_layout = QVBoxLayout()
+        pavement_effects = {
             "self_aligning_torque": "Self-Aligning Torque (Primary)",
             "curb_rumble": "Curb / Road Rumble",
-            "engine_vibration": "Engine Vibration",
             "tire_slip": "Tire Slip / Understeer",
+        }
+
+        # Dirt effects group
+        dirt_group = QGroupBox("Dirt Effects")
+        dirt_layout = QVBoxLayout()
+        dirt_effects = {
+            "rear_traction_loss": "Rear Traction Loss (Dirt Primary)",
+            "dirt_yaw_feedback": "Yaw Rate Feedback",
+            "throttle_steer": "Throttle-Steer Coupling",
+            "dirt_surface_rumble": "Dirt Surface Rumble",
+        }
+
+        # Shared effects group
+        shared_group = QGroupBox("Shared Effects")
+        shared_layout = QVBoxLayout()
+        shared_effects = {
+            "engine_vibration": "Engine Vibration",
             "collision_impact": "Collision Impact",
             "suspension": "Suspension Load Transfer",
         }
 
         self.effect_sliders: dict[str, EffectSliderGroup] = {}
-        for name, display in effect_names.items():
+
+        for name, display in pavement_effects.items():
             slider = EffectSliderGroup(name, display, self.engine)
             self.effect_sliders[name] = slider
-            layout.addWidget(slider)
+            pavement_layout.addWidget(slider)
+        pavement_group.setLayout(pavement_layout)
+        layout.addWidget(pavement_group)
+
+        for name, display in dirt_effects.items():
+            slider = EffectSliderGroup(name, display, self.engine)
+            self.effect_sliders[name] = slider
+            dirt_layout.addWidget(slider)
+        dirt_group.setLayout(dirt_layout)
+        layout.addWidget(dirt_group)
+
+        for name, display in shared_effects.items():
+            slider = EffectSliderGroup(name, display, self.engine)
+            self.effect_sliders[name] = slider
+            shared_layout.addWidget(slider)
+        shared_group.setLayout(shared_layout)
+        layout.addWidget(shared_group)
 
         layout.addStretch()
         return widget

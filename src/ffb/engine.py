@@ -23,8 +23,26 @@ from src.ffb.effects import (
     TireSlip,
     CollisionImpact,
     SuspensionEffect,
+    RearTractionLoss,
+    DirtYawFeedback,
+    ThrottleSteer,
+    DirtSurfaceRumble,
     EffectConfig,
 )
+
+# Registry of all available effects by name
+EFFECT_REGISTRY: dict[str, type[BaseEffect]] = {
+    "self_aligning_torque": SelfAligningTorque,
+    "curb_rumble": CurbRumble,
+    "engine_vibration": EngineVibration,
+    "tire_slip": TireSlip,
+    "collision_impact": CollisionImpact,
+    "suspension": SuspensionEffect,
+    "rear_traction_loss": RearTractionLoss,
+    "dirt_yaw_feedback": DirtYawFeedback,
+    "throttle_steer": ThrottleSteer,
+    "dirt_surface_rumble": DirtSurfaceRumble,
+}
 
 
 @dataclass
@@ -92,14 +110,9 @@ class FFBEngine:
         self.telemetry = telemetry
         self._output_filter = OutputFilter(self.config)
 
-        # Initialize all effects with defaults
+        # Initialize all registered effects with defaults
         self.effects: dict[str, BaseEffect] = {
-            "self_aligning_torque": SelfAligningTorque(),
-            "curb_rumble": CurbRumble(),
-            "engine_vibration": EngineVibration(),
-            "tire_slip": TireSlip(),
-            "collision_impact": CollisionImpact(),
-            "suspension": SuspensionEffect(),
+            name: cls() for name, cls in EFFECT_REGISTRY.items()
         }
 
         self._running = False

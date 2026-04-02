@@ -6,4 +6,8 @@ from .effects import (
     TireSlip,
     CollisionImpact,
     SuspensionEffect,
+    RearTractionLoss,
+    DirtYawFeedback,
+    ThrottleSteer,
+    DirtSurfaceRumble,
 )
