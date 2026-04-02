@@ -197,6 +197,7 @@ class TestEnumerateFFBWheels(unittest.TestCase):
         self.assertIsInstance(result, list)
         self.assertEqual(result, [])
 
+    @unittest.skipUnless(platform.system() == "Windows", "Windows-only: ctypes.WinDLL unavailable on Linux")
     def test_returns_empty_list_if_dinput_unavailable(self):
         """enumerate_ffb_wheels() should return [] not raise if DLL missing."""
         with patch("src.wheel_detect.platform.system", return_value="Windows"):

@@ -77,17 +77,6 @@ _IUNKNOWN_VTABLE_METHODS = 3
 _ENUMDEVICES_VTABLE_OFFSET = _IUNKNOWN_VTABLE_METHODS + 1  # = 4
 
 
-# ---------------------------------------------------------------------------
-# Callback helpers
-# ---------------------------------------------------------------------------
-
-_EnumCallback = ctypes.WINFUNCTYPE(
-    ctypes.c_int,
-    ctypes.POINTER(DIDEVICEINSTANCEW),
-    ctypes.c_void_p,
-)
-
-
 def enumerate_ffb_wheels() -> list[WheelDevice]:
     """
     Return a list of DirectInput FFB-capable game controllers (steering wheels).
@@ -110,6 +99,13 @@ def enumerate_ffb_wheels() -> list[WheelDevice]:
 
 def _enumerate_via_ctypes() -> list[WheelDevice]:
     """Internal: use raw ctypes to call DirectInput8Create + EnumDevices."""
+
+    # Windows-only callback type — defined here so import works on Linux
+    _EnumCallback = ctypes.WINFUNCTYPE(
+        ctypes.c_int,
+        ctypes.POINTER(DIDEVICEINSTANCEW),
+        ctypes.c_void_p,
+    )
 
     # Load DLLs
     try:
