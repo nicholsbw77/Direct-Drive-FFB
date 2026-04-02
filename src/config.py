@@ -12,9 +12,10 @@ from dataclasses import asdict
 
 from src.ffb.engine import EngineConfig
 from src.ffb.effects import EffectConfig
+from src.resource_path import resource_path
 
 
-CONFIG_DIR = Path(__file__).parent.parent / "config"
+CONFIG_DIR = resource_path("config")
 DEFAULT_PROFILE = CONFIG_DIR / "default_profile.json"
 
 

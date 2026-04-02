@@ -1,0 +1,31 @@
+# build/version_info.txt
+# Windows PE version info — shows in file Properties dialog
+# Used by PyInstaller via the 'version=' argument in build_exe.spec
+
+VSVersionInfo(
+  ffi=FixedFileInfo(
+    filevers=(1, 0, 0, 0),
+    prodvers=(1, 0, 0, 0),
+    mask=0x3f,
+    flags=0x0,
+    OS=0x40004,
+    fileType=0x1,
+    subtype=0x0,
+    date=(0, 0)
+  ),
+  kids=[
+    StringFileInfo([
+      StringTable('040904B0', [
+        StringStruct('CompanyName',      'DirtFFB Project'),
+        StringStruct('FileDescription',  'Dirt FFB Plugin for iRacing'),
+        StringStruct('FileVersion',      '1.0.0.0'),
+        StringStruct('InternalName',     'DirtFFB'),
+        StringStruct('LegalCopyright',   ''),
+        StringStruct('OriginalFilename', 'DirtFFB.exe'),
+        StringStruct('ProductName',      'Dirt FFB Plugin'),
+        StringStruct('ProductVersion',   '1.0.0'),
+      ])
+    ]),
+    VarFileInfo([VarStruct('Translation', [0x0409, 1200])])
+  ]
+)

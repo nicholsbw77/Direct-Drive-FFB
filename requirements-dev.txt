@@ -1,0 +1,4 @@
+# Development / packaging tools — not needed at runtime
+-r requirements.txt
+
+pyinstaller>=6.3.0
