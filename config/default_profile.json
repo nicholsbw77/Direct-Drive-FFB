@@ -1,0 +1,60 @@
+{
+    "profile_name": "Default",
+    "engine": {
+        "master_gain": 1.0,
+        "max_torque_pct": 50.0,
+        "output_rate_hz": 360.0,
+        "slew_rate_limit": 0.5,
+        "deadzone": 0.01,
+        "center_spring_gain": 0.0,
+        "center_spring_damping": 0.0,
+        "invert_output": false
+    },
+    "hardware": {
+        "port": "COM3",
+        "baudrate": 38400,
+        "slave_address": 1,
+        "torque_limit_pct": 50.0,
+        "speed_limit_rpm": 200
+    },
+    "effects": {
+        "self_aligning_torque": {
+            "enabled": true,
+            "gain": 1.0,
+            "smoothing": 0.05,
+            "min_speed": 0.0,
+            "max_torque_nm": 20.0
+        },
+        "curb_rumble": {
+            "enabled": true,
+            "gain": 0.5,
+            "smoothing": 0.0,
+            "min_speed": 2.0
+        },
+        "engine_vibration": {
+            "enabled": true,
+            "gain": 0.15,
+            "smoothing": 0.0,
+            "min_speed": 0.0
+        },
+        "tire_slip": {
+            "enabled": true,
+            "gain": 0.6,
+            "smoothing": 0.1,
+            "min_speed": 5.0,
+            "slip_threshold": 0.15
+        },
+        "collision_impact": {
+            "enabled": true,
+            "gain": 0.8,
+            "smoothing": 0.0,
+            "min_speed": 0.0
+        },
+        "suspension": {
+            "enabled": true,
+            "gain": 0.3,
+            "smoothing": 0.15,
+            "min_speed": 2.0
+        }
+    }
+}
