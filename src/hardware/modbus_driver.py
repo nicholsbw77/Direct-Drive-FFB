@@ -22,7 +22,10 @@ import time
 import logging
 
 from pymodbus.client import ModbusSerialClient
-from pymodbus.constants import Endian
+try:
+    from pymodbus.constants import Endian          # pymodbus < 3.x
+except ImportError:
+    from pymodbus.payload import Endian            # pymodbus 3.x moved it here
 from pymodbus.payload import BinaryPayloadDecoder
 
 from src.hardware.base import BaseHardwareDriver, HardwareStatus
